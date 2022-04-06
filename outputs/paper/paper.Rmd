@@ -1,0 +1,228 @@
+---
+title: "Tanzanian Women's Employment Differences regards to Regions"
+author: 
+  - Bu Xu
+thanks: "Code and data are available at: LINK."
+date: "`r format(Sys.time(), '%d %B %Y')`"
+abstract: "Tanzanian women's occupation choices vary, including self-employed, working on farms owned by families, food processing, selling wild products, and doing work that combines agricultural effort and other economic activities. Women are usually employed to do informal and low-paid work in developing countries in Africa. However, their jobs are often vulnerable to exploitation. Thus, we are curious about their occupation differences in different regions and job types. This article will discuss whether there exists a distinction in 19 areas and illustrate women's preference for various jobs. Section \\@ref(data) explains the information we scraped about women's employment in Tanzania and the simulation for the data. Section \\@ref(results) covers the results of our model. In Section \\@ref(discussion), we will discuss women's unemployment in Tanzania and the model, along with some limitations."
+header-includes:
+  - \usepackage{float}
+  - \usepackage{hyperref}
+output: 
+  - bookdown::pdf_document2
+toc: FALSE
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+if(!require(weatherData)) install.packages("weatherData",repos = "http://cran.us.r-project.org")
+library(ggpubr)
+library(tidyverse)
+library(dplyr)
+library(data.table)
+library(skimr)
+data <- read_csv(file = "../data/real.csv")
+```
+
+# Introduction
+
+In the 1996 DHS of Tanzania, information on women's current employment situation is gathered. The unemployment rate in different regions is distinct. As a developing country in East Africa, Tanzania provides women jobs related to agriculture and food processing. Although the rate of women doing work requests physical strength has dropped from 57 percent in 1990 to 55 percent in 2012(@policy) worldwide, it does not mean that females get well-paid jobs and attain salaries or wages as much as males in Tanzania. Particularly, Tanzania has a rate of nearly 90 percent. 
+
+This paper mainly focuses on the biases of women's unemployment and job trend in various regions: the southern highlands(Morogoro, Iringa, Mbeya, Ruvuma), northern corridor(Arusha, Kilimanjaro, Tanga), coastal zone(Coast, Dar es Salaam), central zone(Dodoma), lake zone(Kagera, Mwanza), and western zone(Kigoma) in Tanzania. We want to generate a model to see whether there is a mathematical way to relate the areas' distinctions to the overall unemployment. 
+
+Section \@ref(data) introduces the input data related to 19 regions in Tanzania. Some initial investigations of the data are included to help check the assumptions of the following model and summarize the statistics we need. Section \@ref(results) shows whether our hypothesis is acceptable based on the model generated. Section \@ref(discussion) will discuss why we believe our model is usable in real-life situations. Also, we conclude some limitations of our methodology and the future concerns of the research.
+
+# Data
+
+The dataset **data** includes information on females' occupation and employment rate in Tanzania in 19 regions. Women were asked whether they were paid for their current work during the data collecting process. If the answer is yes, what do they do for a living? If the answer is no, are they unemployed? To summarize the whole dataset, nearly 48 percent are self-employed, and 15 percent do agricultural work with other economic activities. It seems that females prefer agricultural jobs more. 
+
+The first table shows women's unemployment in 19 regions in Tanzania in real-life percentages in specific areas and the simulation data(Table \@ref(tab:data2). Table \@ref(tab:self) contains data of female workers who work for selves in distinct regions. Their jobs include doing any work for them, participating in agricultural work, producing wild products, processing food, hand-crafting, and opening shops or driving taxis.Table \@ref(tab:other) demonstrates Tanzanian women who are employed by others to do jobs. We also collect missing values in the table.
+
+Figure \@ref(fig:num) illustrates the regional unemployment distinctions in these areas. From the plot, we can conclude that women's employment is the lowest in regions in the northern corridor (Arusha, Tanga). As for the coast zone(Dar es Salaam, Coast), there is a giant leap between the two places in the same zone. 
+
+Figure \@ref(fig:selfper1) and Figure \@ref(fig:selfper2) consist of 6 subplots. Each subplot describes the percentage of a particular type of self-employed occupation. They all show a wiggling pattern. However, each one is different from the other, and there are no typical rules to conclude.
+
+```{r data2, echo=FALSE}
+knitr::kable(data[, c(1,2, 13:16)], "pipe", caption = "Women's employment")
+```
+
+
+```{r self, echo=FALSE, fig.cap="Percentage of women that is self-employed"}
+knitr::kable(data[, c(1, 3:8)], "pipe", caption = "Percentage of women that is self-employed")
+```
+
+
+```{r other, echo=FALSE, fig.cap="Percentage of women employed by others"}
+knitr::kable(data[, c(1, 9:12)], "pipe", caption = "Women's employment")
+```
+
+
+```{r num, echo=FALSE, fig.cap="Women not working in different regions"}
+ggplot(data, aes(x = region, y = num_not_working)) +
+  geom_bar(stat="identity", position="dodge", width= 0.7, alpha = 0.8, fill = "steelblue") +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Number of women not working") + 
+  coord_flip()
+```
+
+```{r selfper1, echo=FALSE, fig.cap="Percentage of women that work for their own"}
+self <- data[, c(1, 3:8)]
+
+
+anyself <- ggplot(self, aes(x = region, y = self_any)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Any work by self") + 
+  coord_flip()
+
+agriself <- ggplot(self, aes(x = region, y = self_agri)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Agricultural work by self") + 
+  coord_flip()
+
+wild <- ggplot(self, aes(x = region, y = self_wild_prod)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Wild product") + 
+  coord_flip()
+
+food <- ggplot(self, aes(x = region, y = self_food_process)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Food processing") + 
+  coord_flip()
+
+craft <- ggplot(self, aes(x = region, y = self_craft)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Craft") + 
+  coord_flip()
+
+shoxi <- ggplot(self, aes(x = region, y = self_shop_taxi)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Shop or taxi") + 
+  coord_flip()
+
+ggarrange(anyself, agriself, wild, 
+          labels = c("A", "B", "C"),
+          ncol = 3, nrow = 1)
+```
+
+
+```{r selfper2, echo=FALSE, fig.cap="Percentage of women that work for their own"}
+ggarrange(food, craft, shoxi, 
+          labels = c("D", "E", "F"),
+          ncol = 3, nrow = 1)
+```
+
+```{r otherfper, echo=FALSE, fig.cap="Percentage of women employed by others"}
+other <- data[, c(1, 9:11)]
+
+otherself <- ggplot(other, aes(x = region, y = others_any)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Any work for others") + 
+  coord_flip()
+
+otheragri <- ggplot(other, aes(x = region, y = others_agri)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Agricultural work for others") + 
+  coord_flip()
+
+agriselfother <- ggplot(other, aes(x = region, y = agri_selfother)) +
+  geom_point(alpha = 0.8) +
+  theme_minimal() +
+  xlab("Region") + 
+  ylab("Agricultural for others & self work") + 
+  coord_flip()
+
+ggarrange(otherself, otheragri, agriselfother, 
+          labels = c("A", "B", "C"),
+          ncol = 3, nrow = 1)
+```
+
+# Results
+
+```{r summary, include=FALSE, tab.cap="Summary"}
+summary(data)
+```
+
+|  | self_any | self_agri | self_wild_prod | self_food_process | self_craft | self_shop_taxi |
+|-----------|:-----------:|-----------:|-----------:|-----------:|-----------:|-----------:|  
+| minimum | 24.50 |3.80 | 0.00 | 3.80 | 1.10 | 0.20 |
+| median | 45.70 | 37.60 | 1.60 | 17.30 | 2.90 | 1.10 |
+| mean | 48.64 | 39.02 | 2.011 | 19.39 | 3.37 | 1.18 |
+| maximum |74.40 | 64.50 | 5.70 | 42.90 | 9.40 | 2.50 |
+
+From the above summary table, we mainly focus on self-oriented occupations. These females are doing the work, not employed by others. Thus, it is more suitable for us to see what they participated in. The average percentage of women doing agriculture at family farms in their households is 48.64%. Compared with other jobs for all the self-employed in 19 regions we investigated, females tend to join agriculture-related work. They made up exceeding 50% of the power in this sector. Although it seems they do have a job, it is more kind of voluntary. They might not get paid for what they have done on the farm. As for opening shops and driving taxis, the percentage is the lowest among all the other occupations. 
+
+From all the tables illustrated in the data, the number of unemployed women differs in different regions. Thus, it might be a coincidence that there are regional distinctions. Nevertheless, the simulated data shows a similar result. 
+
+
+
+
+# Discussion
+
+## Women's job choices in 1996
+
+Women in Tanzania are often controlled by men and have lower social status when compared to men. Men dominate the society in Tanzania. Thus, it is not quite typical for females to participate in economic activities in the 1990s. They play the role of cooking and do all the house cleaning after they finish work outside their households. From our simulated data, we can tell that there is no significant difference in the mean value of unemployed women in the sample collected in the whole country. Women were suffering discrimination in Tanzania since all the work data we collected only included works that did not require high intelligence. It probably arose from the man-dominated society in Tanzania in 1996. Thus, we must study what prominent jobs women occupied in their daily lives back in 1996 using DHS datasets. Agricultural non-paid work made up the majority of their occupation choices. Food processing is another work they do for a living. Not much effort contained, the work requires being patient and efficient. Participants in the survey are aged between 15 to 49 and share various educational backgrounds. However, it is not our main concern. To improve women's legal rights, we need to reduce the stereotype that women can only do housework and some handcrafting.  
+
+## Unemployment rate is distributed according to the regions
+
+All types of work show a wiggling pattern, but their supreme and infimum vary. Food processing and agriculture-related work have a difference between a maximum and minimum of 50 percent while producing wile product only have 4 percentage of difference. If we compare regional distinctions, we can tell that there is no giant leap between places in the same zone. However, regional differences do exist. The survey includes six zones in Tanzania: the southern highlands, northern corridor, coastal zone, central zone, lake zone, and western zone. Women who live in the central and coastal zone have a lower unemployment rate, which means that in these places, women are less discriminated and need more money to support their families. 
+
+## Weaknesses
+
+Our research still consists of some biases. When trying to interpret the job choices as a sample, it only contains 7624 samples. The pattern it demonstrates might happen due to various reasons, including age bias. The age range of the survey is 15 to 49. Women younger than 15 or older than 49 joining work also exists. It cannot be excluded from the sample. Also, we only take 1996 as an example, and there is no conclusion about women's occupation in the 1990s. It is more specific than general. 
+
+\newpage
+
+\appendix
+
+# Appendix {-}
+
+## Variables
+ 
+For Table \@ref(tab:data2)
+**region** represents the 19 regions in Tanzania. 
+**not_working** stands for the percentage of women with no current job in this region. 
+**num_women** stands for the number of women observations we collected in this region. 
+**num_not_working** stands for the number of women who do not have an occupation. 
+**simul** is the simulated data generated randomly from our sample in the area. 
+Similarly, **simu_num_not_working** is the simulation of unemployed women.
+
+For Table \@ref(tab:self)
+**self_any** is the percentage of women who do any work for themselves. 
+**self_agri** is the percentage of women who participate in agriculture-related work.
+**self_wild_prod** is the percentage of women whose job is about wild products. 
+**self_food_process** describes the percentage of women who process food as work in Tanzania. 
+**self_craft** is the percentage of women crafting as a living. 
+**self_shp_taxi** is the percentage of women who open shops or drive the taxi. 
+
+For \@ref(tab:other)
+**others_any** is the percentage of women who are working for others for any job. 
+**others_agri** represents that others employ the individual to do some agriculture-related work. **agri_selfother** represents the percentage of women doing agricultural work for themselves and doing other economic activities by themselves. 
+
+
+\newpage
+
+
+# References
+
+@citeR
+@thereferencecanbewhatever
+@citeLahman
+@Policy
